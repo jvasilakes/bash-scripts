@@ -1,0 +1,4 @@
+Match
+
+A bash script used to sync files across main system and external drives.
+Used when one is unsure which save file is the latest version.
