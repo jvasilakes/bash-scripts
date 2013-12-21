@@ -1,0 +1,10 @@
+#! /bin/bash
+
+if [ $# -gt 0 ]
+    then
+	echo "Usage: umount-usb"
+	exit 1
+fi
+
+(df | grep /dev/sdb > /dev/null) || (echo "Device not found! Check output of df." 1>&2; exit 1)
+    umount /dev/sdb1
