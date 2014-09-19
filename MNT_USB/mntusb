@@ -2,9 +2,14 @@
 
 if [ $# != 1 ] 
     then
-	echo "Usage: mount-usb mount_point" 1>&2
+	echo "Usage: mntusb <mount_point>" 1>&2
 	exit 1
 fi
 
 mnt_pnt="$1"
-mount -o umask=0000 /dev/sdb1 $mnt_pnt 
+
+DEVICES=$(lsblk | tr ' ' '\n' | grep 'sd[b-z][1-9]' | tr -dc 'a-z1-9\n')
+
+echo $DEVICES | while read -r line ; do
+	mount -o umask=0000 /dev/$line $mnt_pnt && exit 0
+done

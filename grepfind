@@ -1,0 +1,11 @@
+#! /bin/bash
+
+PATTERN=$1
+
+for FILE in $(ls)
+do
+	if [[ $(cat $FILE | grep $PATTERN) ]]
+	then
+		echo $FILE
+	fi
+done
