@@ -1,0 +1,12 @@
+#! /bin/bash
+
+# Removes those pesky .pyc files from a given directory.
+# Run 'rmpyc dir1 [dir2 [dir 3 ...]]'.
+
+if [ "$#" -ge 1 ]; then
+	for dir in "$@"; do
+		rm $dir/*.pyc || echo "$dir is not a directory."
+	done
+else
+	echo "USAGE: rmpyc <dir1> <dir2> ..."
+fi

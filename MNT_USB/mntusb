@@ -1,5 +1,7 @@
 #! /bin/bash
 
+# A simple cli tool for mounting a usb or other removable media.
+
 if [ $# != 1 ] 
     then
 	echo "Usage: mntusb <mount_point>" 1>&2
@@ -8,8 +10,21 @@ fi
 
 mnt_pnt="$1"
 
-DEVICES=$(lsblk | tr ' ' '\n' | grep 'sd[b-z][1-9]' | tr -dc 'a-z1-9\n')
+LABELS=$(ls -l /dev/disk/by-label | awk 'NR>1' | awk '{print $9}')
+DEVICES=$(ls -l /dev/disk/by-label | awk 'NR>1' | awk '{print $NF}' | tr -dc 'a-z1-9\n')
+LABELS=($LABELS)
+DEVICES=($DEVICES)
 
-echo $DEVICES | while read -r line ; do
-	mount -o umask=0000 /dev/$line $mnt_pnt && exit 0
+for ((i=0;i<${#DEVICES[@]};i++))
+do
+	grep ${DEVICES[$i]} /proc/mounts > /dev/null || \
+		echo "$i) ${DEVICES[$i]} ${LABELS[$i]}"
 done
+
+echo -n "? "
+read id
+if [[ $id = "" ]]; then
+	exit 0
+else
+	mount -o umask=0000 /dev/${DEVICES[$id]} $mnt_pnt && exit 0
+fi
