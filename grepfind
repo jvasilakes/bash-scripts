@@ -1,17 +1,25 @@
 #! /bin/bash
 
-# Tool for finding all files in the current directory that contain text matching
-# PATTERN. So, if we want all the files in the current directory that contain
-# 'grep', we run 'grepfind grep'.
 
 [[ "$#" -ne 1 ]] && echo "Illegal number of parameters." && exit 1
 
 PATTERN=$1
 
-for FILE in $(ls)
-do
-	if [[ $(cat $FILE | grep $PATTERN) ]]
-	then
-		echo $FILE
-	fi
-done
+grepfind() 
+{
+	for FILE in $(ls)
+	do
+		if [[ -d ${FILE} ]]
+		then
+			cd ${FILE}; grepfind; cd ..
+	
+		elif [[ $(cat ${FILE} | grep ${PATTERN}) ]]
+		then
+			printf '%s/%s\n' $(pwd) ${FILE}
+		else
+			continue
+		fi
+	done
+}
+
+grepfind
