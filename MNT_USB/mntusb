@@ -23,7 +23,8 @@ done
 
 echo -n "? "
 read id
-if [[ $id = "" ]]; then
+if [ $id = "" ] || [ ${#DEVICES[@]} =~ $id ]; then
+	echo $id not valid. Nothing mounted.
 	exit 0
 else
 	mount -o umask=0000 /dev/${DEVICES[$id]} $mnt_pnt && exit 0
