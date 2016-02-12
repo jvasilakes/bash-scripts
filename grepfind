@@ -33,7 +33,7 @@ grepfind()
 		then
 			cd ${FILE}; grepfind; cd ..
 	
-		elif [[ $(cat ${FILE} | grep ${PATTERN}) ]]
+		elif [[ $(grep ${PATTERN} ${FILE}) ]]
 		then
 			printf '%s/%s\n' $(pwd) ${FILE}
 		else
