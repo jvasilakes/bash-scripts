@@ -1,7 +1,23 @@
 #! /bin/bash
 
 
-[[ "$#" -ne 1 ]] && echo "Illegal number of parameters." && exit 1
+IGNORE=
+while getopts "i:" OPT
+do
+    case $OPT in
+        i)
+          IGNORE=$OPTARG
+	  shift 2
+          ;;
+    esac
+done
+if [[ ! -z ${IGNORE} ]]
+then
+	echo "Ignoring ${IGNORE}" 1>&2
+fi
+
+
+[[ "$#" -lt 1 ]] && echo "Illegal number of parameters." && exit 1
 
 PATTERN=$1
 
@@ -9,7 +25,11 @@ grepfind()
 {
 	for FILE in $(ls)
 	do
-		if [[ -d ${FILE} ]]
+		if [[ ${FILE} = ${IGNORE} ]]
+		then
+			continue
+			
+		elif [[ -d ${FILE} ]]
 		then
 			cd ${FILE}; grepfind; cd ..
 	

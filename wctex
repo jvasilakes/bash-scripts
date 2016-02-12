@@ -1,0 +1,9 @@
+#! /bin/bash
+
+FILES=$@
+
+let wc=0
+for f in $FILES; do
+	let wc+=$(grep -P '^[^\\%\t]' $f | wc -w | awk '{print $1}')
+done
+echo $wc
