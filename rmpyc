@@ -1,5 +1,0 @@
-#! /bin/bash
-
-DIR=$1
-
-rm ${DIR}/*.pyc > /dev/null 2>&1 || echo "No pyc files in ${DIR}"
