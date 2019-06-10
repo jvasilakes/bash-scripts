@@ -1,0 +1,21 @@
+#! /bin/bash
+
+# Creates a conda virtual environment with the specified packages.
+# Modifies the activate and deactivate scripts to show the 
+# virtual environment name on the prompt.
+
+env_name=$1
+args=${@:2}
+conda create --name ${env_name} ${args}
+mkdir -p /anaconda3/envs/${env_name}/etc/conda/{activate.d,deactivate.d}
+touch /anaconda3/envs/${env_name}/etc/conda/{activate.d,deactivate.d}/prompt.sh
+
+echo '#!/bin/zsh
+
+# Set the prompt to reflect the current virtual environment.
+function subprompt { echo; echo "`basename $CONDA_PREFIX` " }' > /anaconda3/envs/${env_name}/etc/conda/activate.d/prompt.sh
+
+echo '#!/bin/zsh
+
+# Reset the prompt back to normal.
+function subprompt { echo; echo "∴ " }' > /anaconda3/envs/${env_name}/etc/conda/deactivate.d/prompt.sh

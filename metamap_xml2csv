@@ -1,0 +1,87 @@
+#! /usr/bin/env python
+
+import argparse
+import csv
+import xml.etree.ElementTree as ET
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("xmlfile", type=str,
+                        help="MetaMap XML file to parse.")
+    parser.add_argument("outfile", type=str,
+                        help="Where to save the CSV file.")
+    parser.add_argument("--keep_best", action="store_true", default=False,
+                        help="""Keep only the best match for
+                                each unique mapped phrase.""")
+    parser.add_argument("--keep_exact", action="store_true", default=False,
+                        help="""Keep only matches with score 1000.""")
+    parser.add_argument("--sldiID", action="store_true", default=False,
+                        help="""Flag indicating whether the --sldiID MetaMap
+                                option was used to generate the input. If
+                                specified, output the IDs.""")
+    args = parser.parse_args()
+    return args
+
+
+def main():
+    args = parse_args()
+    if args.keep_best is True and args.keep_exact is True:
+        raise ValueError("Specify only one of --keep_best, --keep_exact")
+
+    xml_doc = ET.parse(args.xmlfile).getroot()
+    utterances = xml_doc.findall(".//*Utterances")
+
+    phrase_count = 0
+    elems = []
+    for utt in utterances:
+        phrases = utt.findall(".//*Phrase")
+        for phrase in phrases:
+            if args.sldiID is True:
+                phrase_id = utt.find(".//PMID").text
+            else:
+                phrase_count += 1
+                phrase_id = "{0:04d}".format(phrase_count)
+            phrase_text = phrase.find("./PhraseText").text
+            num_mappings = int(phrase.find("./Mappings").get("Count"))
+            if num_mappings == 0:
+                print("No mappings for {}".format(phrase_text))
+            candidates = phrase.findall(".//*Candidate")
+            best_found = False
+            best_candidate = {"Score": 0}
+            exact_found = False
+            for candidate in candidates:
+                elem = {}
+                elem["PhraseID"] = phrase_id
+                elem["Phrase"] = phrase_text
+                elem["MatchedText"] = candidate.find("./CandidateMatched").text
+                elem["PreferredName"] = candidate.find("./CandidatePreferred").text  # noqa
+                elem["Sources"] = ','.join([s.text for s in candidate.findall(".//*Source")])  # noqa
+                elem["CUI"] = candidate.find("./CandidateCUI").text
+                elem["Score"] = -1 * int(candidate.find("./CandidateScore").text)  # noqa
+                elem["SemTypes"] = ','.join([st.text for st in candidate.findall(".//*SemType")])  # noqa
+                if args.keep_best is True:
+                    if elem["Score"] > best_candidate["Score"]:
+                        best_candidate = elem
+                        best_found = True
+                elif args.keep_exact is True:
+                    if elem["Score"] == 1000:
+                        elems.append(elem)
+                        exact_found = True
+                else:
+                    elems.append(best_candidate)
+            if args.keep_best is True and best_found is True:
+                elems.append(best_candidate)
+            if args.keep_exact is True and exact_found is False:
+                print(f"No exact matches found for {phrase_text}")
+
+    with open(args.outfile, 'w') as csvfile:
+        fieldnames = ["PhraseID", "Phrase", "MatchedText", "PreferredName",
+                      "Sources", "CUI", "Score", "SemTypes"]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(elems)
+
+
+if __name__ == "__main__":
+    main()

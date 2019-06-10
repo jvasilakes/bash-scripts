@@ -1,0 +1,28 @@
+#! /bin/bash
+
+if [ -z "$1" ]; then
+	echo "$0 [start|stop]"
+      	exit 1
+fi	
+
+if [ "$1" == "stop" ]; then
+	/Users/vasil024/tools/MetaMap/public_mm/bin/skrmedpostctl stop
+	/Users/vasil024/tools/MetaMap/public_mm/bin/wsdserverctl stop
+	exit 0
+elif [ "$1" != "start" ]; then
+	echo "Unsupported operation '$1'"
+	exit 1
+fi
+
+if ! (ps ax | grep -v grep | grep -q taggerServer); then
+	/Users/vasil024/tools/MetaMap/public_mm/bin/skrmedpostctl start
+else
+	echo "Tagger server already running."
+fi
+
+if ! (ps ax | grep -v grep | grep -q wsd.server.DisambiguatorServer); then
+	/Users/vasil024/tools/MetaMap/public_mm/bin/wsdserverctl start
+else
+	echo "WSD server already running."
+fi
+
