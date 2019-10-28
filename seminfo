@@ -1,0 +1,125 @@
+#! /usr/bin/env python3
+
+import os
+import csv
+import pandas
+import argparse
+
+
+"""
+A tool to look up information about UMLS semantic types.
+Written so I don't have to keep searching through the files
+at https://metamap.nlm.nih.gov/SemanticTypesAndGroups.shtml.
+Looks for the semantic type and semantic group files in the
+data/ directory within the directory where this script lives.
+"""
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("queries", type=str, nargs='+',
+                        help="""Comma delimited semantic types and/or
+                                semantic groups to look up. All forms
+                                are valid, i.e. abbreviations, full
+                                names, and T codes.""")
+    return parser.parse_args()
+
+
+class SemTypeInfo(object):
+
+    def __init__(self, name, abbrev, code, group_name, group_abbrev):
+        self.name = name
+        self.abbrev = abbrev
+        self.code = code
+        self.group_name = group_name
+        self.group_abbrev = group_abbrev
+
+    def __repr__(self):
+        str1 = f"{self.name}|{self.abbrev}|{self.code}"
+        str2 = f"{self.group_name}|{self.group_abbrev}"
+        return f"{str1}|{str2}"
+
+
+class SemGroupInfo(object):
+
+    def __init__(self, name, abbrev, semtypes):
+        self.name = name
+        self.abbrev = abbrev
+        self.semtypes = semtypes
+
+    def __repr__(self):
+        str1 = f"{self.name}, {self.abbrev}"
+        str2 = ', '.join([st.abbrev for st in self.semtypes])
+        return f"{str1}\n\t{str2}"
+
+
+class SemanticData(object):
+
+    def __init__(self, semtype_path, semgroup_path):
+        self.semtype_path = semtype_path
+        self.semgroup_path = semgroup_path
+        self.read_sem_data()
+
+    def __getitem__(self, key):
+        try: return self.semtype_name[key]
+        except KeyError: pass
+        try: return self.semtype_abbrev[key]
+        except KeyError: pass
+        try: return self.semtype_code[key]
+        except KeyError: pass
+        try: return self.semgroup_name[key]
+        except KeyError: pass
+        try: return self.semgroup_abbrev[key]
+        except KeyError: pass
+
+    def read_sem_data(self):
+        semtype_df = pandas.read_csv(self.semtype_path, sep='|', header=None)
+        semtype_df.columns = ["st_abb", "st_code", "st_name"]
+        semgroup_df = pandas.read_csv(self.semgroup_path, sep='|', header=None)
+        semgroup_df.columns = ["grp_abb", "grp_name", "st_code", "st_name"]
+        semgroup_df = semgroup_df.drop("st_name", axis=1)
+        sem_df = semtype_df.merge(semgroup_df, how="inner", on="st_code")
+
+        self.semtype_name = self.semtype_abbrev = self.semtype_code = {}
+        self.semgroup_name = self.semgroup_abbrev = {}
+        for row in sem_df.itertuples(index=False):
+
+            st_atrs = ["st_name", "st_abb", "st_code"]
+            st_name, st_abb, st_code = [getattr(row, atr) for atr in st_atrs]
+            grp_atrs = ["grp_name", "grp_abb"]
+            grp_name, grp_abb = [getattr(row, atr) for atr in grp_atrs]
+
+            tinfo = SemTypeInfo(name=st_name,
+                                abbrev=st_abb,
+                                code=st_code,
+                                group_name=grp_name,
+                                group_abbrev=grp_abb)
+
+            self.semtype_name[st_name] = tinfo
+            self.semtype_abbrev[st_abb] = tinfo
+            self.semtype_code[st_code] = tinfo
+
+            if grp_abb not in self.semgroup_abbrev:
+                ginfo = SemGroupInfo(name=grp_name,
+                                     abbrev=grp_abb,
+                                     semtypes=set([tinfo]))
+                self.semgroup_name[grp_name] = ginfo
+                self.semgroup_abbrev[grp_abb] = ginfo
+            else:
+                self.semgroup_name[grp_name].semtypes.add(tinfo)
+                self.semgroup_abbrev[grp_abb].semtypes.add(tinfo)
+
+
+def main(queries):
+    scriptdir = os.path.dirname(os.path.realpath(__file__))
+    semtype_path = os.path.join(scriptdir, "data/SemanticTypes_2018AB.txt")
+    semgrp_path = os.path.join(scriptdir, "data/SemGroups_2018.txt")
+    sem_data = SemanticData(semtype_path, semgrp_path)
+
+    for query in list(csv.reader(queries, skipinitialspace=True))[0]:
+        print(sem_data[query])
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    main(args.queries)
